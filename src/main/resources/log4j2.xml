@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <Console name="Console">
+            <PatternLayout pattern="[%d{HH:mm:ss}] [%-5level] [%c{1}] %msg %throwable{short} %n" />
+        </Console>
+        <File name="File" fileName="logs/boot-camp.log">
+            <PatternLayout>
+                <Pattern>[%d{HH:mm:ss}] [%-5level] [%c{1}] %msg %throwable{short}%n</Pattern>
+            </PatternLayout>
+        </File>
+    </Appenders>
+    <Loggers>
+        <Root level="trace">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="File" />
+        </Root>
+    </Loggers>
+</Configuration>
