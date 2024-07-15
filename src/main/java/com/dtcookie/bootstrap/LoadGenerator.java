@@ -1,9 +1,6 @@
 package com.dtcookie.bootstrap;
 
-import java.io.InputStream;
-import java.net.URL;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
@@ -11,7 +8,6 @@ import java.util.concurrent.Executors;
 
 import com.dtcookie.shop.frontend.FrontendServer;
 import com.dtcookie.util.Http;
-import com.dtcookie.util.Streams;
 
 public class LoadGenerator extends TimerTask {
 

@@ -1,16 +1,20 @@
 package com.dtcookie.database;
 
+import java.lang.management.ManagementFactory;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.dtcookie.shop.jmx.ConnectionPool;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
@@ -33,12 +37,20 @@ public class Database {
     public static AtomicBoolean Debug = new AtomicBoolean(false);
 
     private static final long DELAY_PER_ACTIVE_CONNECTION = 56;
-
-    private static AtomicLong lastLogTS = new AtomicLong(0);
+    
+    private static ConnectionPool connectionPoolMBean = new ConnectionPool();
 
     static {
         Attributes attributes = Attributes.of(AttributeKey.stringKey("tier"), System.getenv("DEMO_PURPOSE"));
         activeConnectionsCounter.add(activeConnections.get(), attributes);
+        MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+        try {
+            ObjectName name = new ObjectName("shop.jdbc:name=connectionPool");
+            mBeanServer.registerMBean(connectionPoolMBean, name);
+            log.info("JMX MBeans registered");
+        } catch (Throwable t) {
+        	t.printStackTrace(System.err);
+        }
     }
 
     private Database() {        
@@ -59,10 +71,11 @@ public class Database {
         long expectedDelay = 1500 + numActiveConnections * DELAY_PER_ACTIVE_CONNECTION;
         Thread.sleep(Math.min(expectedDelay, timeoutMillis));
         if (timeoutMillis < expectedDelay) {
+        	log("Connection pool exhausted");
             return null;
         }
         numActiveConnections = activeConnections.incrementAndGet();
-        log("Active Connection: " + numActiveConnections);
+        connectionPoolMBean.setActiveConnections(numActiveConnections);
         
         Attributes attributes = Attributes.of(AttributeKey.stringKey("tier"), System.getenv("DEMO_PURPOSE"));
         activeConnectionsCounter.add(1, attributes);
@@ -76,14 +89,7 @@ public class Database {
         if (s == null || s.isBlank() || s.isEmpty()) {
             return;
         }
-        synchronized (lastLogTS) {
-            long last = lastLogTS.get();
-            long now = System.currentTimeMillis();
-            if (now - last > 10 * 1000) {
-                lastLogTS.set(now);
-                log.info(s);
-            }
-        }
+        log.info(s);
     }
     
     private static void onConnectionClosed(Connection con) {
@@ -93,26 +99,6 @@ public class Database {
         activeConnections.decrementAndGet();        
         Attributes attributes = Attributes.of(AttributeKey.stringKey("tier"), System.getenv("DEMO_PURPOSE"));
         activeConnectionsCounter.add(-1, attributes);
-    }
-
-    public static void execute(String sql) throws SQLException, InterruptedException {
-        long start = System.currentTimeMillis();
-        try (Connection con = Database.getConnection(4, TimeUnit.SECONDS)) {
-            Thread.sleep(System.currentTimeMillis() - start);
-            try (Statement stmt = con.createStatement()) {
-                stmt.execute(sql);
-            }
-        }
-    }
-
-    public static void executeUpdate(String sql) throws SQLException, InterruptedException {
-        long start = System.currentTimeMillis();
-        try (Connection con = Database.getConnection(4, TimeUnit.SECONDS)) {
-            Thread.sleep(System.currentTimeMillis() - start);
-            try (Statement stmt = con.createStatement()) {
-                stmt.executeUpdate(sql);
-            }
-        }
     }
 
 }

@@ -13,7 +13,6 @@ import com.dtcookie.database.Database;
 import com.dtcookie.shop.Product;
 import com.dtcookie.shop.backend.BackendServer;
 import com.dtcookie.util.Http;
-import com.dtcookie.util.Otel;
 import com.sun.net.httpserver.HttpExchange;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
