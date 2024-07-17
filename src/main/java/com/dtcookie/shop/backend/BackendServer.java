@@ -2,6 +2,7 @@ package com.dtcookie.shop.backend;
 
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -40,12 +41,14 @@ public class BackendServer {
 
 	private static final ExecutorService executor = Executors.newCachedThreadPool();
 	private static final Timer creditCardFullScanTimer = new Timer(true);
+	private static final Random RAND = new Random(System.currentTimeMillis());
 
 	public static void submain(String[] args) throws Exception {
 		creditCardFullScanTimer.schedule(new TimerTask() {
 			@Override
-			public void run() {				
-				Http.Jodd.POST("http://localhost:" + BackendServer.CREDIT_CARD_SCAN_LISTEN_PORT + "/full-credit-card-scan", UUID.randomUUID().toString());			
+			public void run() {
+				log.info("PERFORMING FULL CREDIT CARD SCAN");
+				Http.JDK.POST("http://localhost:" + BackendServer.CREDIT_CARD_SCAN_LISTEN_PORT + "/full-credit-card-scan", UUID.randomUUID().toString());	
 			}
 		}, 1000 * 20, 1000 * 60 * 15);
 
@@ -151,8 +154,13 @@ public class BackendServer {
 			Thread.sleep(50 * (System.currentTimeMillis() - start));
 			if (con != null) {
 				try (Statement stmt = con.createStatement()) {
+					StringBuilder sb = new StringBuilder();					
+					sb = sb.append(RAND.nextInt(0, 10)).append(RAND.nextInt(0, 10)).append(RAND.nextInt(0, 10)).append(RAND.nextInt(0, 10));
+					sb = sb.append("-####").append("-####").append("-####");
+					String ccNumber = sb.toString();
+					log.info("Full Scan of Credit Card: " + ccNumber);
 					stmt.executeUpdate(
-							"SELECT * FROM credit_card WHERE number = '" + UUID.randomUUID().toString() + "'");
+							"SELECT * FROM credit_card WHERE number = '" + ccNumber + "'");
 				}
 			} else {
 				executor.submit(BackendServer::performFullCreditCardScan);
